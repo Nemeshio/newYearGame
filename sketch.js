@@ -21,16 +21,17 @@ function Snowflake(){
 		this.speedX = random(1,10)*rs;
 	}
 }
-function Player(){
+function Player(img){
 	this.x = 50*rs;
 	this.y = height/2;
 	this.fly = false;
 	this.acc = 0;
 	this.vel = 0;
 	this.dead = false;
-	this.size = 10*rs;
+	this.size = 20*rs;
 	this.score = 0;
 	this.lives = 3;
+	this.img = img;
 	
 	this.update = function (){
 		if(this.lives <= 0){
@@ -59,7 +60,11 @@ function Player(){
 		}
 	};
 	this.show = function (){
-		rect(this.x-this.size, this.y-this.size, 2*this.size, 2*this.size);
+		//push();
+		//fill(255,100);
+		//rect(this.x-this.size, this.y-this.size, 4*this.size, 2*this.size);
+		//pop();
+		image(this.img,this.x-this.size, this.y-this.size, 4*this.size, 2*this.size);
 	};
 }
 function Point(x,y){
@@ -70,28 +75,31 @@ function Point(x,y){
 	
 	this.show = function(){
 		push();
-		fill(50,255,50,80);
+		fill(50,255,50,50);
 		rect(this.x,this.y,50*rs,50*rs);
 		pop();
 	};
 	this.intersect = function (player){
-		if(player.x + player.size > this.x && player.y + player.size > this.y && !this.got){
-			if(player.x - player.size < this.x+50*rs && player.y - player.size < this.y + 50*rs){
+		if(collideRectRect(this.x,this.y,50*rs,50*rs,player.x-player.size, player.y-player.size, 4*player.size, 2*player.size) && !this.got){
 				player.score++;
 				this.got = true;
-			}
 		}
 	}
 }
-function Pipe(x){
+function Pipe(x,img){
 	this.x = x;
 	this.startX = x;
 	this.y = height-random(height/4,3*height/4);
 	this.point = new Point(this.x, this.y);
 	this.speed = 2*rs;
+	this.img = img;
 	
 	this.show = function(){
-		rect(this.x,this.y,50*rs,height);
+		push();
+		fill(255,100);
+		rect(this.x,this.y+10,50*rs,height);
+		pop();
+		image(this.img,this.x,this.y,50*rs,150*rs);
 	};
 	
 	this.update = function (player){
@@ -110,22 +118,26 @@ function Pipe(x){
 		}
 	};
 	this.intersect = function (player){
-		if(player.x + player.size > this.x && player.y + player.size > this.y){
-			if(player.x < this.x+50*rs){
+		if(collideRectRect(this.x,this.y+10,50*rs,height,player.x-player.size, player.y-player.size, 4*player.size, 2*player.size)){
 				player.dead = true;
-			}
 		}
 		this.point.intersect(player);
 	}
 }
-function Bird(){
-	this.size = 15*rs;
+function Bird(img){
+	this.size = 30*rs;
 	this.x = width + this.size;
 	this.y = random(height);
 	this.speed = random(5,7)*rs;
+	this.img = img;
+	this.hitted = false;
 	
 	this.show = function (){
-		circle(this.x,this.y,this.size);
+		//push();
+		//fill(255,100);
+		//rect(this.x,this.y,this.size,this.size);
+		//pop();
+		image(this.img,this.x,this.y,this.size,this.size);
 	};
 	this.update = function(pipe) {
 		this.x -= this.speed;
@@ -133,11 +145,13 @@ function Bird(){
 			this.x = width + this.size;
 			this.y = random(height);
 			this.speed = random(2*rs+pipe.speed,6*rs+pipe.speed);
+			this.hitted = false;
 		}
 	};
 	this.intersect = function (player){
-		if(player.x + player.size > this.x - this.size && player.y + player.size > this.y - this.size && player.x - player.size < this.x + this.size && this.y + this.size > player.y - player.size){
-				player.dead = true;
+		if(collideRectRect(this.x,this.y,this.size,this.size,player.x-player.size, player.y-player.size, 4*player.size, 2*player.size)&&!this.hitted){
+				player.lives--;
+				this.hitted = true;
 		}
 	};
 }
@@ -148,6 +162,13 @@ let santa;
 let pipe, bird1,bird2;
 let started = false;
 let rs;
+let birdImg, pipeImg, santaImg;
+
+function preload(){
+	birdImg = loadImage("img/bird.png");
+	pipeImg = loadImage("img/pipe.png");
+	santaImg = loadImage("img/santa.png");
+}
 
 function setup(){
 	createCanvas(windowWidth,windowWidth);
@@ -155,14 +176,14 @@ function setup(){
 	for(i=0; i<50; i++){
 		snow.push(new Snowflake());
 	}
-	santa = new Player();
-	pipe = new Pipe(width);
-	bird1 = new Bird();
-	bird2 = new Bird();
+	santa = new Player(santaImg);
+	pipe = new Pipe(width,pipeImg);
+	bird1 = new Bird(birdImg);
+	bird2 = new Bird(birdImg);
 	bird2.x += width;
 }
 function draw(){
-	background(30);
+	background(50);
 	noStroke();
 	//Drawing snow in background
 	snow.forEach(function(flake){
@@ -185,9 +206,13 @@ function draw(){
 	bird1.intersect(santa);
 	bird2.intersect(santa);
 	if(santa.dead){
-		push();
-		fill(255,0,0);
 		santa.show();
+		push();
+		textAlign(CENTER,CENTER);
+		stroke(255);
+		textSize(32*rs);
+		text("Game Over!",width/2,(height/2)-(25*rs));
+		text("Score: "+santa.score,width/2,(height/2)+(25*rs));
 		pop();
 	}
 	else{
@@ -207,9 +232,22 @@ function draw(){
 		circle(i*l+ 5*l, 2*width/25, 2*width/25);
 	}
 }
+function restartGame(){
+	santa = new Player(santaImg);
+	pipe = new Pipe(width,pipeImg);
+	bird1 = new Bird(birdImg);
+	bird2 = new Bird(birdImg);
+	bird2.x += width;
+	started = false;
+}
 
 function touchStarted(){
-	started = true;
+	if(!started){
+		started = true;
+	}
+	if(santa.dead && santa.y > height){
+		restartGame();
+	}
 	santa.fly = true;
 }
 function touchEnded(){
